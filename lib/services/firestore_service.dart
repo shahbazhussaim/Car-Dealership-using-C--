@@ -24,6 +24,10 @@ class FirestoreService {
         .map((s) => s.docs.map(Category.fromDoc).toList());
   }
 
+  Future<void> addOrUpdateCategory(Category c) async {
+    await _db.collection('categories').doc(c.id).set(c.toMap(), SetOptions(merge: true));
+  }
+
   Future<Product> getProduct(String id) async {
     final doc = await _db.collection('products').doc(id).get();
     return Product.fromDoc(doc);
@@ -60,6 +64,32 @@ class FirestoreService {
   Future<String> createOrder(Order order) async {
     final ref = await _db.collection('orders').add(order.toMap());
     return ref.id;
+  }
+
+  // Services
+  Stream<List<ServiceItem>> watchServices() {
+    return _db
+        .collection('services')
+        .orderBy('name')
+        .snapshots()
+        .map((s) => s.docs.map(ServiceItem.fromDoc).toList());
+  }
+
+  Future<void> addOrUpdateService(ServiceItem s) async {
+    await _db.collection('services').doc(s.id).set(s.toMap(), SetOptions(merge: true));
+  }
+
+  // Plans
+  Stream<List<Plan>> watchPlans() {
+    return _db
+        .collection('plans')
+        .orderBy('priceMonthly')
+        .snapshots()
+        .map((s) => s.docs.map(Plan.fromDoc).toList());
+  }
+
+  Future<void> addOrUpdatePlan(Plan p) async {
+    await _db.collection('plans').doc(p.id).set(p.toMap(), SetOptions(merge: true));
   }
 
   // Confirm order and decrement stock in a single transaction; prevents negative stock
