@@ -1,139 +1,209 @@
-Here's a "Read Me" document for your **Car Dealership Management System** code:
+# Karigar Woodwork (Flutter + Firebase)
 
----
+A production-ready Flutter app for a furniture workshop: shop, services, custom orders, subscriptions, admin stock & order management, reports, user auth, and multi-device admin. Mobile and Web supported.
 
-# **Car Dealership Management System**
+## Features
+- Bottom navigation: Home | Shop | Services | Subscriptions | Profile
+- Firebase Authentication (email/password), Firestore (products, orders, services, subscriptions), Storage (images)
+- Role-based Admin Dashboard (orders, status transitions, stock decrement on confirm)
+- Checkout flow creating Firestore orders
+- Image uploads via Firebase Storage (web & mobile compatible)
+- Reports page (examples and stubs for expansion)
+- Responsive UI with warm wood theme (primary #8B4513, secondary #FAEBD7)
 
-## **Introduction**
-The Car Dealership Management System is a C++ program that allows users to **buy** or **rent cars**. It includes a collection of car categories, handles customer data, and generates invoices for both purchase and rental transactions.
+## Setup
 
----
+1. Requirements
+   - Flutter >= 3.22, Dart >= 3.3
+   - Firebase project
 
-## **Features**
-1. **Buy a Car:**
-   - Users can browse different categories of cars.
-   - View car names, models, and prices.
-   - Select a car to buy.
-   - Generate an invoice for the purchase.
+2. Install dependencies
+```bash
+flutter pub get
+```
 
-2. **Rent a Car:**
-   - Users can browse car categories available for rent.
-   - View details like car models, daily rent, and fuel efficiency.
-   - Specify the number of days for rent.
-   - Generate an invoice for the rental.
+3. Configure Firebase
+- Install FlutterFire CLI:
+```bash
+dart pub global activate flutterfire_cli
+```
+- Configure:
+```bash
+flutterfire configure
+```
+- This overwrites `lib/firebase_options.dart`. If not configured, the app shows the setup screen.
 
-3. **Invoice Generation:**
-   - Invoices include customer information, car details, price, and rental duration (if applicable).
-   - Invoices are displayed in the console and saved to a file (`Invoice.txt`).
+- Enable products:
+  - Firebase Authentication (Email/Password)
+  - Firestore Database
+  - Firebase Storage
 
-4. **Categories of Cars:**
-   - **Sedan**
-   - **SUV**
-   - **Comfort (Luxury Cars)**
+4. Deploy Firestore Security Rules
+```bash
+firebase deploy --only firestore:rules
+```
+Rules file: `firestore.rules` (included). Ensure you have at least one admin in `users/{uid}.role = 'admin'`.
 
----
+4. Run
+```bash
+flutter run -d chrome
+```
 
-## **Files**
-- **cars.txt**: Contains the car categories.
-- **Invoice.txt**: Stores the generated invoice for download.
+5. Web build
+```bash
+flutter build web
+```
 
----
+## Firestore Data Models
+- `users/{uid}`: `{ name, email, phone, address, role }` where `role ∈ {user, admin}`
+- `products/{productId}`: `{ name, category, description, price, stockCount, imageUrl, createdAt, sku }`
+- `categories/{categoryId}`: `{ name, description }`
+- `orders/{orderId}`: `{ userId, items: [{productId, name, qty, price}], total, address, phone, notes, status, createdAt, updatedAt, adminNotes, assignedTo }`
+- `orders/{orderId}/logs/{logId}`: `{ from, to, adminId, adminNotes, assignedTo, timestamp }`
+- `services/{serviceId}`: `{ name, price, description, durationEstimate }`
+- `plans/{planId}`: `{ name, priceMonthly, priceYearly, benefits, trialDays }`
+- `subscriptions/{subId}`: `{ userId, planId, startDate, nextBillingDate, status, benefits }`
+- `feedback/{feedbackId}`: `{ userId, orderId?, rating, message, createdAt }`
 
-## **How to Use**
-1. **Run the Program**: 
-   - Compile and execute the program in a C++ IDE (e.g., Code::Blocks, Visual Studio) or a terminal using a C++ compiler (e.g., `g++`).
+## Security Rules (sample)
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
 
-2. **Choose an Action**:
-   - On startup, you’ll see two main options:
-     - **1. Buy a Car**
-     - **2. Rent a Car**
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
 
-3. **Select a Category**:
-   - Choose a car category by entering the corresponding number:
-     - **1: Sedan**
-     - **2: SUV**
-     - **3: Comfort (Luxury Cars)**
+    match /orders/{orderId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow update: if isAdmin();
+    }
 
-4. **Make a Choice**:
-   - If buying:
-     - Select a car by entering its letter (a, b, c).
-   - If renting:
-     - Select a car by entering its letter (a, b, c) and specify the rental duration (number of days).
+    match /users/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && uid == request.auth.uid);
+      allow write: if isAdmin() || (isSignedIn() && uid == request.auth.uid);
+    }
 
-5. **Enter Customer Information**:
-   - Provide your **name**, **CNIC**, and **phone number** when prompted.
+    match /subscriptions/{id} {
+      allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+    }
 
-6. **View and Save Invoice**:
-   - The program will display the invoice on the console and save it to `Invoice.txt`.
+    match /feedback/{id} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+    }
+  }
+}
+```
 
----
+## Cloud Functions (optional) - Email Notifications
+- Example using SendGrid. Create `/functions/index.js`:
+```javascript
+const functions = require('firebase-functions');
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-## **Key Functions**
-1. **`main()`**:
-   - Handles the main menu and user actions.
-   - Calls appropriate functions for purchase or rental.
+exports.sendStatusEmail = functions.https.onRequest(async (req, res) => {
+  const { to, subject, text, html } = req.body;
+  const msg = { to, from: 'no-reply@yourdomain.com', subject, text, html };
+  try {
+    await sgMail.send(msg);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+```
 
-2. **`Userchoice(char c)`**:
-   - Displays cars for purchase based on the selected category.
+Trigger emails from app using `EmailService.sendWithTemplate()` and set `EMAIL_FUNCTION_URL` via `--dart-define`:
+```bash
+flutter run -d chrome --dart-define=EMAIL_FUNCTION_URL=https://<REGION>-<PROJECT>.cloudfunctions.net/sendStatusEmail
+```
+Server templates include: order_confirmed, order_shipped, order_completed, subscription_activated, technician_assigned.
 
-3. **`Userchoice1(char c)`**:
-   - Displays cars for rent based on the selected category.
+Example curl:
+```bash
+curl -X POST "$EMAIL_FUNCTION_URL" \
+  -H 'Content-Type: application/json' \
+  -d '{"to":"you@example.com","template":"order_confirmed","vars":{"orderId":"ABC123","items":"Chair x1","total":999}}'
+```
+- Env vars:
+```bash
+export SENDGRID_API_KEY=... # on deploy env
+```
+- Trigger from app by POSTing to function URL in `lib/config.dart`.
 
-4. **`pur()`**:
-   - Generates an invoice for car purchases and saves it to `Invoice.txt`.
+Alternative SMTP example (nodemailer):
+```javascript
+const nodemailer = require('nodemailer');
+exports.sendStatusEmailSmtp = functions.https.onRequest(async (req, res) => {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+  const { to, subject, text, html } = req.body;
+  try {
+    await transporter.sendMail({ from: 'no-reply@yourdomain.com', to, subject, text, html });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+```
 
-5. **`rent()`**:
-   - Generates an invoice for car rentals and saves it to `Invoice.txt`.
+## Seed Data
+Create a simple Dart script `tool/seed.dart` and run with `dart run tool/seed.dart` after setting `GOOGLE_APPLICATION_CREDENTIALS` for admin SDK or run from a one-off Cloud Function. Alternatively add products manually in Firebase Console.
 
-6. **`UserInfo()`**:
-   - Captures user information (name, CNIC, phone number).
+Example Firestore writes (pseudo):
+- Add categories: Chairs, Tables, Cabinets
+- Add products with stockCount and imageUrl
+- Create user document with `role: 'admin'` for your admin uid
 
----
+## Notes
+- Push notifications via FCM can be added later; placeholders only
+- Payment processing for subscriptions is stubbed; integrate Stripe + webhooks later
+- For web, `image_picker_for_web` is used automatically
 
-## **Code Structure**
-### Variables:
-- **Customer Information:**
-  - `name`, `cnic`, `phno`: Store customer details.
-  
-- **Car Details:**
-  - `NC` (Car Name), `Pr` (Price for Purchase), `Pr1` (Price for Rent), `Md` (Model), `Fa` (Fuel Average).
+## Admin & Modules
+- Admin CRUD: Products, Categories, Services, Plans (from Admin Dashboard menu)
+- Services & Custom Orders: Services tab lists services and a request card
+- Subscriptions: Subscribe/cancel/change; admin manages plans
+- Reports: Sales Summary, Top Products, Low Stock, Orders by Status, Feedback Summary, Subscriptions Summary, Daily Orders
+- Technicians: Manage `technicians` collection, assign technicians in order detail; emails to techs
 
-- **Predefined Car Collections:**
-  - Sedan, SUV, Comfort categories with car names, models, prices, and fuel averages.
+## Technicians & Seeding
+Create technicians:
+```bash
+firebase firestore:documents:create technicians/tech1 '{"name":"Tech One","email":"tech1@example.com","phone":"1234567890","skills":["assembly"],"available":true}'
+```
+Assign via Admin Dashboard -> Order -> Assign Technician button.
 
----
+## Deploy to Firebase Hosting (Web)
+Build and deploy:
+```bash
+flutter build web --release
+firebase init hosting  # if first time
+firebase deploy --only hosting
+```
 
-## **Dependencies**
-- **File I/O**:
-  - Reads categories from `cars.txt`.
-  - Writes invoices to `Invoice.txt`.
+## Production Build Commands
+```bash
+flutter analyze
+flutter build web --release
+```
 
-- **Libraries Used**:
-  - `<iostream>` for input and output.
-  - `<string>` for handling text.
-  - `<fstream>` for file handling.
-  - `<iomanip>` for formatting invoices.
-
----
-
-## **Future Improvements**
-- Add a **database** to manage car details and customer records.
-- Provide an **administrative interface** to add or remove cars.
-- Add **error handling** for invalid inputs.
-- Implement a **graphical user interface (GUI)**.
-- Introduce payment options and advanced invoicing features.
-
----
-
-## **Known Issues**
-- No validation for invalid inputs (e.g., wrong characters, invalid CNIC format).
-- Static car information; no dynamic updates from the file.
-- Limited categories and cars.
-
----
-
-## **Conclusion**
-The Car Dealership Management System is a basic implementation of a dealership system for managing purchases and rentals. It effectively demonstrates key programming concepts such as **file handling**, **classical I/O operations**, and **decision-making structures**.
-
---- 
-
+## Screenshots (placeholders)
+- Home
+- Shop
+- Services
+- Subscriptions
+- Profile
+- Admin Dashboard
+- Reports

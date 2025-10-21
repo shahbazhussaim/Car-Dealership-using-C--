@@ -1,0 +1,36 @@
+name: karigar_woodwork
+description: Karigar Woodwork (Flutter mobile + web) using Firebase
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  provider: ^6.1.2
+  firebase_core: ^3.4.0
+  firebase_auth: ^5.2.0
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.2
+  http: ^1.2.2
+  image_picker: ^1.1.2
+  intl: ^0.19.0
+  flutter_local_notifications: ^17.2.3
+  flutter_form_builder: ^9.2.1
+
+  # For web compatibility of image_picker
+  image_picker_for_web: ^3.0.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
