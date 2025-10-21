@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:karigar_woodwork/providers/auth_provider.dart';
 import 'package:karigar_woodwork/services/firestore_service.dart';
 import 'package:karigar_woodwork/models/models.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 // Displays user's past orders and a simple status timeline per order
 class OrderHistoryScreen extends StatelessWidget {
@@ -133,9 +135,10 @@ class _FeedbackButton extends StatelessWidget {
           TextButton(
             onPressed: () async {
               final rating = int.tryParse(ratingCtrl.text) ?? 5;
+              final uid = fb.FirebaseAuth.instance.currentUser?.uid;
               await FirebaseFirestore.instance.collection('feedback').add({
                 'orderId': orderId,
-                'userId': FirebaseFirestore.instance.app.options.projectId, // placeholder not used
+                'userId': uid,
                 'rating': rating,
                 'message': messageCtrl.text,
                 'createdAt': Timestamp.now(),
