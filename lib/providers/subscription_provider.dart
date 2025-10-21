@@ -41,7 +41,10 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> cancel({required String subId}) async {
+    final doc = await _db.collection('subscriptions').doc(subId).get();
+    final old = doc.data()?['status'] as String? ?? 'ACTIVE';
     await _db.collection('subscriptions').doc(subId).update({'status': 'CANCELLED'});
+    // Optionally trigger email via UI calling EmailService
   }
 
   Future<void> upgrade({required String subId, required Plan plan}) async {

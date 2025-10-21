@@ -120,11 +120,18 @@ exports.sendStatusEmail = functions.https.onRequest(async (req, res) => {
 });
 ```
 
-Trigger emails from app using `EmailService.send()` and set `EMAIL_FUNCTION_URL` via `--dart-define`:
+Trigger emails from app using `EmailService.sendWithTemplate()` and set `EMAIL_FUNCTION_URL` via `--dart-define`:
 ```bash
 flutter run -d chrome --dart-define=EMAIL_FUNCTION_URL=https://<REGION>-<PROJECT>.cloudfunctions.net/sendStatusEmail
 ```
-Status change templates in `EmailTemplates` include Order Confirmed, Shipped, and Subscription Activated.
+Server templates include: order_confirmed, order_shipped, order_completed, subscription_activated, technician_assigned.
+
+Example curl:
+```bash
+curl -X POST "$EMAIL_FUNCTION_URL" \
+  -H 'Content-Type: application/json' \
+  -d '{"to":"you@example.com","template":"order_confirmed","vars":{"orderId":"ABC123","items":"Chair x1","total":999}}'
+```
 - Env vars:
 ```bash
 export SENDGRID_API_KEY=... # on deploy env
@@ -169,6 +176,14 @@ Example Firestore writes (pseudo):
 - Services & Custom Orders: Services tab lists services and a request card
 - Subscriptions: Subscribe/cancel/change; admin manages plans
 - Reports: Sales Summary, Top Products, Low Stock, Orders by Status, Feedback Summary, Subscriptions Summary, Daily Orders
+- Technicians: Manage `technicians` collection, assign technicians in order detail; emails to techs
+
+## Technicians & Seeding
+Create technicians:
+```bash
+firebase firestore:documents:create technicians/tech1 '{"name":"Tech One","email":"tech1@example.com","phone":"1234567890","skills":["assembly"],"available":true}'
+```
+Assign via Admin Dashboard -> Order -> Assign Technician button.
 
 ## Deploy to Firebase Hosting (Web)
 Build and deploy:

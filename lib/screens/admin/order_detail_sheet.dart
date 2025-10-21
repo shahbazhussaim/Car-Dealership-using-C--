@@ -9,6 +9,7 @@ class OrderDetailSheet extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onRefund;
   final void Function(String technicianId)? onAssign;
+  final VoidCallback? onSendEmail;
 
   const OrderDetailSheet({
     super.key,
@@ -19,6 +20,7 @@ class OrderDetailSheet extends StatelessWidget {
     required this.onCancel,
     required this.onRefund,
     this.onAssign,
+    this.onSendEmail,
   });
 
   @override
@@ -57,6 +59,11 @@ class OrderDetailSheet extends StatelessWidget {
                     OutlinedButton(
                       onPressed: () => _openAssign(context),
                       child: const Text('Assign Technician'),
+                    ),
+                  if (onSendEmail != null)
+                    OutlinedButton(
+                      onPressed: onSendEmail,
+                      child: const Text('Send Email'),
                     ),
                 ],
               ),

@@ -10,6 +10,7 @@ import 'package:karigar_woodwork/screens/admin/categories_admin_screen.dart';
 import 'package:karigar_woodwork/screens/admin/services_admin_screen.dart';
 import 'package:karigar_woodwork/screens/admin/plans_admin_screen.dart';
 import 'package:karigar_woodwork/screens/admin/reports_screen.dart';
+import 'package:karigar_woodwork/screens/admin/technicians_admin_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -34,6 +35,8 @@ class AdminDashboardScreen extends StatelessWidget {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PlansAdminScreen()));
               } else if (v == 'reports') {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportsScreen()));
+              } else if (v == 'technicians') {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TechniciansAdminScreen()));
               }
             },
             itemBuilder: (_) => const [
@@ -42,6 +45,7 @@ class AdminDashboardScreen extends StatelessWidget {
               PopupMenuItem(value: 'services', child: Text('Manage Services')),
               PopupMenuItem(value: 'plans', child: Text('Manage Plans')),
               PopupMenuItem(value: 'reports', child: Text('Reports')),
+              PopupMenuItem(value: 'technicians', child: Text('Technicians')),
             ],
           )
         ],
@@ -96,6 +100,11 @@ class AdminDashboardScreen extends StatelessWidget {
                             nextStatus: OrderStatus.inProgress,
                             adminId: auth.user?.uid ?? 'admin',
                           );
+                          await EmailService.sendOrderStatusChange(
+                            order: o,
+                            oldStatus: orderStatusToString(o.status),
+                            newStatus: 'IN_PROGRESS',
+                          );
                         },
                         onDeliver: () async {
                           Navigator.pop(context);
@@ -104,6 +113,11 @@ class AdminDashboardScreen extends StatelessWidget {
                             nextStatus: OrderStatus.delivered,
                             adminId: auth.user?.uid ?? 'admin',
                           );
+                          await EmailService.sendOrderStatusChange(
+                            order: o,
+                            oldStatus: orderStatusToString(o.status),
+                            newStatus: 'DELIVERED',
+                          );
                         },
                         onCancel: () async {
                           Navigator.pop(context);
@@ -111,6 +125,11 @@ class AdminDashboardScreen extends StatelessWidget {
                             orderId: o.id,
                             nextStatus: OrderStatus.cancelled,
                             adminId: auth.user?.uid ?? 'admin',
+                          );
+                          await EmailService.sendOrderStatusChange(
+                            order: o,
+                            oldStatus: orderStatusToString(o.status),
+                            newStatus: 'CANCELLED',
                           );
                         },
                         onRefund: () {
@@ -125,6 +144,18 @@ class AdminDashboardScreen extends StatelessWidget {
                             adminId: auth.user?.uid ?? 'admin',
                             technicianId: techId,
                           );
+                        },
+                        onSendEmail: () async {
+                          final err = await EmailService.sendOrderStatusChange(
+                            order: o,
+                            oldStatus: orderStatusToString(o.status),
+                            newStatus: orderStatusToString(o.status),
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(err == null ? 'Email sent' : 'Email failed: $err')),
+                            );
+                          }
                         },
                       ),
                     );

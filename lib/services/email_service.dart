@@ -1,47 +1,150 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:karigar_woodwork/config.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:karigar_woodwork/models/models.dart';
 
 class EmailService {
-  static Future<String?> send({
+  // Generic send with template support and one retry on network error
+  static Future<String?> sendWithTemplate({
     required String to,
-    required String subject,
-    required String html,
-    String? text,
+    required String template,
+    Map<String, dynamic>? vars,
+    String? subject,
   }) async {
-    if (kEmailFunctionUrl.isEmpty) {
-      return 'EMAIL_FUNCTION_URL not configured';
-    }
-    try {
+    if (kEmailFunctionUrl.isEmpty) return 'EMAIL_FUNCTION_URL not configured';
+    Future<String?> _do() async {
       final res = await http.post(
         Uri.parse(kEmailFunctionUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'to': to,
-          'subject': subject,
-          'html': html,
-          'text': text ?? _stripHtml(html),
+          'template': template,
+          'vars': vars ?? <String, dynamic>{},
+          if (subject != null) 'subject': subject,
         }),
       );
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        return null;
-      }
+      if (res.statusCode >= 200 && res.statusCode < 300) return null;
       return 'HTTP ${res.statusCode}: ${res.body}';
+    }
+    try {
+      final first = await _do();
+      if (first == null) return null;
+      // Retry once on failure
+      return await _do();
     } catch (e) {
       return e.toString();
     }
   }
 
-  static String _stripHtml(String html) => html.replaceAll(RegExp(r'<[^>]*>'), '');
-}
+  static Future<String?> sendOrderStatusChange({
+    required Order order,
+    required String oldStatus,
+    required String newStatus,
+    String? userEmail,
+  }) async {
+    final email = userEmail ?? await getUserEmail(order.userId);
+    if (email == null || email.isEmpty) return 'User email not found';
+    final template = _templateForOrderStatus(newStatus);
+    final items = order.items
+        .map((e) => '${e.name} x${e.qty}')
+        .take(5)
+        .join(', ');
+    final vars = {
+      'orderId': order.id,
+      'oldStatus': oldStatus,
+      'newStatus': newStatus,
+      'items': items,
+      'total': order.total,
+      'adminNotes': order.adminNotes ?? '',
+    };
+    return sendWithTemplate(
+      to: email,
+      template: template,
+      vars: vars,
+      subject: 'Order #${order.id} ${newStatus.replaceAll('_', ' ')}',
+    );
+  }
 
-class EmailTemplates {
-  static String orderConfirmed({required String orderId}) =>
-      '<h2>Order Confirmed</h2><p>Your order <b>#$orderId</b> has been confirmed. We\'ll start processing it shortly.</p>';
+  static Future<String?> sendSubscriptionChange({
+    required Subscription subscription,
+    required String oldStatus,
+    required String newStatus,
+    String? userEmail,
+    Plan? plan,
+  }) async {
+    final email = userEmail ?? await getUserEmail(subscription.userId);
+    if (email == null || email.isEmpty) return 'User email not found';
+    final template = _templateForSubscriptionStatus(newStatus);
+    final vars = {
+      'planId': subscription.planId,
+      'oldStatus': oldStatus,
+      'newStatus': newStatus,
+      'nextBillingDate': subscription.nextBillingDate.toDate().toIso8601String(),
+      'benefits': plan?.benefits ?? subscription.benefits,
+    };
+    return sendWithTemplate(
+      to: email,
+      template: template,
+      vars: vars,
+      subject: 'Subscription ${newStatus.replaceAll('_', ' ')}',
+    );
+  }
 
-  static String orderShipped({required String orderId}) =>
-      '<h2>Order Shipped</h2><p>Your order <b>#$orderId</b> is on the way.</p>';
+  static Future<String?> sendTechnicianAssigned({
+    required String technicianEmail,
+    required String orderId,
+  }) {
+    return sendWithTemplate(
+      to: technicianEmail,
+      template: 'technician_assigned',
+      vars: {'orderId': orderId},
+      subject: 'Assigned to Order #$orderId',
+    );
+  }
 
-  static String subscriptionActivated({required String planName}) =>
-      '<h2>Subscription Activated</h2><p>Your <b>$planName</b> subscription is now active.</p>';
+  static Future<String?> getUserEmail(String uid) async {
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    return (doc.data()?['email'] as String?) ?? '';
+  }
+
+  static String _templateForOrderStatus(String status) {
+    switch (status) {
+      case 'CONFIRMED':
+        return 'order_confirmed';
+      case 'IN_PROGRESS':
+        return 'order_in_progress';
+      case 'AWAITING_SHIPMENT':
+        return 'order_shipped';
+      case 'DELIVERED':
+      case 'COMPLETED':
+        return 'order_completed';
+      case 'CANCELLED':
+        return 'order_cancelled';
+      case 'RETURN_REQUESTED':
+        return 'order_return_requested';
+      case 'RETURNED':
+        return 'order_returned';
+      case 'NEW':
+      default:
+        return 'order_new';
+    }
+  }
+
+  static String _templateForSubscriptionStatus(String status) {
+    switch (status) {
+      case 'TRIAL':
+        return 'subscription_trial_started';
+      case 'ACTIVE':
+        return 'subscription_activated';
+      case 'PAST_DUE':
+        return 'subscription_past_due';
+      case 'CANCELLED':
+        return 'subscription_cancelled';
+      case 'EXPIRED':
+        return 'subscription_expired';
+      default:
+        return 'subscription_update';
+    }
+  }
 }
