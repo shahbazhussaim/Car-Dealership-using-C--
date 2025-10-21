@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:karigar_woodwork/services/firestore_service.dart';
 import 'package:karigar_woodwork/models/models.dart';
 import 'package:karigar_woodwork/providers/auth_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Lists services and provides a "Request Service" and "Request Custom Order" flow
 class ServicesScreen extends StatelessWidget {

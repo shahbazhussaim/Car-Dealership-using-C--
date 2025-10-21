@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:karigar_woodwork/providers/auth_provider.dart';
 import 'package:karigar_woodwork/screens/checkout/checkout_screen.dart';
 import 'package:karigar_woodwork/providers/cart_provider.dart';
+import 'package:karigar_woodwork/screens/profile/profile_edit_screen.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -40,6 +41,12 @@ class ProfileTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const ProfileEditScreen())),
+          child: const Text('Edit Profile'),
+        ),
+        const SizedBox(height: 8),
         if (!cart.isEmpty)
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context)
