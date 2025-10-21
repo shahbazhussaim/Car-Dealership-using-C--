@@ -4,6 +4,7 @@ import 'package:karigar_woodwork/services/firestore_service.dart';
 import 'package:karigar_woodwork/models/models.dart';
 import 'package:karigar_woodwork/providers/auth_provider.dart';
 import 'package:karigar_woodwork/screens/admin/order_detail_sheet.dart';
+import 'package:karigar_woodwork/services/email_service.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -44,6 +45,12 @@ class AdminDashboardScreen extends StatelessWidget {
                             await service.confirmOrderAndDecrementStock(
                               orderId: o.id,
                               adminId: auth.user?.uid ?? 'admin',
+                            );
+                            // Optional email
+                            await EmailService.send(
+                              to: auth.user?.email ?? '',
+                              subject: 'Order Confirmed #${o.id}',
+                              html: EmailTemplates.orderConfirmed(orderId: o.id),
                             );
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
