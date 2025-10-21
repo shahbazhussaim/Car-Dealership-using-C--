@@ -5,6 +5,11 @@ import 'package:karigar_woodwork/models/models.dart';
 import 'package:karigar_woodwork/providers/auth_provider.dart';
 import 'package:karigar_woodwork/screens/admin/order_detail_sheet.dart';
 import 'package:karigar_woodwork/services/email_service.dart';
+import 'package:karigar_woodwork/screens/admin/products_admin_screen.dart';
+import 'package:karigar_woodwork/screens/admin/categories_admin_screen.dart';
+import 'package:karigar_woodwork/screens/admin/services_admin_screen.dart';
+import 'package:karigar_woodwork/screens/admin/plans_admin_screen.dart';
+import 'package:karigar_woodwork/screens/admin/reports_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -14,7 +19,33 @@ class AdminDashboardScreen extends StatelessWidget {
     final service = FirestoreService();
     final auth = context.read<AuthProvider>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Dashboard')),
+      appBar: AppBar(
+        title: const Text('Admin Dashboard'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'products') {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProductsAdminScreen()));
+              } else if (v == 'categories') {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategoriesAdminScreen()));
+              } else if (v == 'services') {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ServicesAdminScreen()));
+              } else if (v == 'plans') {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PlansAdminScreen()));
+              } else if (v == 'reports') {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportsScreen()));
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'products', child: Text('Manage Products')),
+              PopupMenuItem(value: 'categories', child: Text('Manage Categories')),
+              PopupMenuItem(value: 'services', child: Text('Manage Services')),
+              PopupMenuItem(value: 'plans', child: Text('Manage Plans')),
+              PopupMenuItem(value: 'reports', child: Text('Reports')),
+            ],
+          )
+        ],
+      ),
       body: StreamBuilder<List<Order>>(
         stream: service.watchOrders(),
         builder: (context, snapshot) {
@@ -48,7 +79,7 @@ class AdminDashboardScreen extends StatelessWidget {
                             );
                             // Optional email
                             await EmailService.send(
-                              to: auth.user?.email ?? '',
+                              to: o.userId, // Ideally lookup user email via users/{uid}
                               subject: 'Order Confirmed #${o.id}',
                               html: EmailTemplates.orderConfirmed(orderId: o.id),
                             );
@@ -86,6 +117,13 @@ class AdminDashboardScreen extends StatelessWidget {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Refund is UI placeholder.')),
+                          );
+                        },
+                        onAssign: (techId) async {
+                          await service.assignTechnician(
+                            orderId: o.id,
+                            adminId: auth.user?.uid ?? 'admin',
+                            technicianId: techId,
                           );
                         },
                       ),

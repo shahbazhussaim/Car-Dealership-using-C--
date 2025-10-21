@@ -5,14 +5,17 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Products
-  Stream<List<Product>> watchProducts({String? category}) {
+  Stream<List<Product>> watchProducts({String? category, bool includeDeleted = false}) {
     Query<Map<String, dynamic>> q = _db.collection('products');
     if (category != null && category.isNotEmpty) {
       q = q.where('category', isEqualTo: category);
     }
-    return q.orderBy('createdAt', descending: true).snapshots().map(
-          (s) => s.docs.map(Product.fromDoc).toList(),
-        );
+    if (!includeDeleted) {
+      q = q.where('deleted', isNull: true);
+    }
+    return q.orderBy('createdAt', descending: true).snapshots().map((s) {
+      return s.docs.map(Product.fromDoc).toList();
+    });
   }
 
   // Categories
@@ -36,6 +39,15 @@ class FirestoreService {
   Future<void> addOrUpdateProduct(Product p) async {
     final data = p.toMap();
     await _db.collection('products').doc(p.id).set(data, SetOptions(merge: true));
+  }
+
+  Future<String> createProduct(Map<String, dynamic> data) async {
+    final ref = await _db.collection('products').add(data);
+    return ref.id;
+  }
+
+  Future<void> softDeleteProduct(String productId) async {
+    await _db.collection('products').doc(productId).set({'deleted': true}, SetOptions(merge: true));
   }
 
   Future<void> updateStock(String productId, int delta) async {
@@ -175,6 +187,28 @@ class FirestoreService {
     });
   }
 
+  Future<void> assignTechnician({
+    required String orderId,
+    required String adminId,
+    required String technicianId,
+  }) async {
+    final ref = _db.collection('orders').doc(orderId);
+    await _db.runTransaction((tx) async {
+      final logRef = ref.collection('logs').doc();
+      tx.set(logRef, {
+        'from': 'ASSIGNMENT',
+        'to': 'ASSIGNMENT',
+        'adminId': adminId,
+        'assignedTo': technicianId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      tx.update(ref, {
+        'assignedTo': technicianId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
   // Reports helpers (examples)
   Future<int> countOrdersByStatus(String status,
       {DateTime? start, DateTime? end}) async {
@@ -183,5 +217,22 @@ class FirestoreService {
     if (end != null) q = q.where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end));
     final s = await q.get();
     return s.docs.length;
+  }
+
+  // Feedback
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchFeedback({DateTime? start, DateTime? end}) {
+    Query<Map<String, dynamic>> q = _db.collection('feedback');
+    if (start != null) q = q.where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start));
+    if (end != null) q = q.where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end));
+    return q.orderBy('createdAt', descending: true).snapshots();
+  }
+
+  // Technicians
+  Stream<List<Map<String, dynamic>>> watchTechnicians() {
+    return _db.collection('technicians').orderBy('name').snapshots().map((s) => s.docs.map((d) {
+          final m = d.data();
+          m['id'] = d.id;
+          return m;
+        }).toList());
   }
 }

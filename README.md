@@ -33,6 +33,17 @@ flutterfire configure
 ```
 - This overwrites `lib/firebase_options.dart`. If not configured, the app shows the setup screen.
 
+- Enable products:
+  - Firebase Authentication (Email/Password)
+  - Firestore Database
+  - Firebase Storage
+
+4. Deploy Firestore Security Rules
+```bash
+firebase deploy --only firestore:rules
+```
+Rules file: `firestore.rules` (included). Ensure you have at least one admin in `users/{uid}.role = 'admin'`.
+
 4. Run
 ```bash
 flutter run -d chrome
@@ -108,6 +119,12 @@ exports.sendStatusEmail = functions.https.onRequest(async (req, res) => {
   }
 });
 ```
+
+Trigger emails from app using `EmailService.send()` and set `EMAIL_FUNCTION_URL` via `--dart-define`:
+```bash
+flutter run -d chrome --dart-define=EMAIL_FUNCTION_URL=https://<REGION>-<PROJECT>.cloudfunctions.net/sendStatusEmail
+```
+Status change templates in `EmailTemplates` include Order Confirmed, Shipped, and Subscription Activated.
 - Env vars:
 ```bash
 export SENDGRID_API_KEY=... # on deploy env
@@ -146,3 +163,32 @@ Example Firestore writes (pseudo):
 - Push notifications via FCM can be added later; placeholders only
 - Payment processing for subscriptions is stubbed; integrate Stripe + webhooks later
 - For web, `image_picker_for_web` is used automatically
+
+## Admin & Modules
+- Admin CRUD: Products, Categories, Services, Plans (from Admin Dashboard menu)
+- Services & Custom Orders: Services tab lists services and a request card
+- Subscriptions: Subscribe/cancel/change; admin manages plans
+- Reports: Sales Summary, Top Products, Low Stock, Orders by Status, Feedback Summary, Subscriptions Summary, Daily Orders
+
+## Deploy to Firebase Hosting (Web)
+Build and deploy:
+```bash
+flutter build web --release
+firebase init hosting  # if first time
+firebase deploy --only hosting
+```
+
+## Production Build Commands
+```bash
+flutter analyze
+flutter build web --release
+```
+
+## Screenshots (placeholders)
+- Home
+- Shop
+- Services
+- Subscriptions
+- Profile
+- Admin Dashboard
+- Reports
