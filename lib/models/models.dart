@@ -169,6 +169,8 @@ class Order {
   final Timestamp? updatedAt;
   final String? adminNotes;
   final String? assignedTo;
+  final String? paymentStatus; // UNPAID, PAID, REFUNDED
+  final List<String>? images; // optional image URLs for order
 
   Order({
     required this.id,
@@ -183,6 +185,8 @@ class Order {
     this.updatedAt,
     this.adminNotes,
     this.assignedTo,
+    this.paymentStatus,
+    this.images,
   });
 
   factory Order.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -202,6 +206,8 @@ class Order {
       updatedAt: d['updatedAt'],
       adminNotes: d['adminNotes'],
       assignedTo: d['assignedTo'],
+      paymentStatus: d['paymentStatus'],
+      images: (d['images'] as List<dynamic>?)?.cast<String>(),
     );
   }
 
@@ -217,6 +223,8 @@ class Order {
         'updatedAt': updatedAt,
         'adminNotes': adminNotes,
         'assignedTo': assignedTo,
+        if (paymentStatus != null) 'paymentStatus': paymentStatus,
+        if (images != null) 'images': images,
       };
 }
 

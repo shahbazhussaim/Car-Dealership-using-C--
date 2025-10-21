@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:karigar_woodwork/providers/auth_provider.dart';
+import 'package:karigar_woodwork/screens/checkout/checkout_screen.dart';
+import 'package:karigar_woodwork/providers/cart_provider.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -8,6 +10,7 @@ class ProfileTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final cart = context.watch<CartProvider>();
     if (auth.user == null) {
       return Center(
         child: ElevatedButton(
@@ -37,6 +40,14 @@ class ProfileTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
+        if (!cart.isEmpty)
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const CheckoutScreen())),
+            icon: const Icon(Icons.shopping_cart_checkout),
+            label: Text('Checkout (${cart.totalItems} items)'),
+          ),
+        const SizedBox(height: 8),
         ElevatedButton(
           onPressed: auth.signOut,
           child: const Text('Sign out'),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:karigar_woodwork/services/firebase_service.dart';
 import 'package:karigar_woodwork/app.dart';
 import 'package:karigar_woodwork/providers/auth_provider.dart';
+import 'package:karigar_woodwork/providers/cart_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +13,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: KarigarApp(initState: initState),
     ),

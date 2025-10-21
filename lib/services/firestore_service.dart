@@ -15,6 +15,15 @@ class FirestoreService {
         );
   }
 
+  // Categories
+  Stream<List<Category>> watchCategories() {
+    return _db
+        .collection('categories')
+        .orderBy('name')
+        .snapshots()
+        .map((s) => s.docs.map(Category.fromDoc).toList());
+  }
+
   Future<Product> getProduct(String id) async {
     final doc = await _db.collection('products').doc(id).get();
     return Product.fromDoc(doc);
@@ -51,6 +60,57 @@ class FirestoreService {
   Future<String> createOrder(Order order) async {
     final ref = await _db.collection('orders').add(order.toMap());
     return ref.id;
+  }
+
+  // Confirm order and decrement stock in a single transaction; prevents negative stock
+  Future<void> confirmOrderAndDecrementStock({
+    required String orderId,
+    required String adminId,
+    String? adminNotes,
+  }) async {
+    final orderRef = _db.collection('orders').doc(orderId);
+    await _db.runTransaction((tx) async {
+      final orderSnap = await tx.get(orderRef);
+      final d = orderSnap.data() ?? {};
+      if ((d['status'] as String?) == 'CONFIRMED') return; // idempotent
+      final items = (d['items'] as List<dynamic>? ?? [])
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      // Check all stocks
+      for (final item in items) {
+        final productId = item['productId'] as String? ?? '';
+        final qty = (item['qty'] ?? 0) as int;
+        final prodRef = _db.collection('products').doc(productId);
+        final prodSnap = await tx.get(prodRef);
+        final current = (prodSnap.data()?['stockCount'] ?? 0) as int;
+        if (current - qty < 0) {
+          throw Exception('Low stock for product $productId');
+        }
+      }
+      // Decrement
+      for (final item in items) {
+        final productId = item['productId'] as String? ?? '';
+        final qty = (item['qty'] ?? 0) as int;
+        final prodRef = _db.collection('products').doc(productId);
+        final prodSnap = await tx.get(prodRef);
+        final current = (prodSnap.data()?['stockCount'] ?? 0) as int;
+        tx.update(prodRef, {'stockCount': current - qty});
+      }
+      // Log + update status
+      final logRef = orderRef.collection('logs').doc();
+      tx.set(logRef, {
+        'from': d['status'] ?? 'NEW',
+        'to': 'CONFIRMED',
+        'adminId': adminId,
+        'adminNotes': adminNotes,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      tx.update(orderRef, {
+        'status': 'CONFIRMED',
+        'updatedAt': FieldValue.serverTimestamp(),
+        if (adminNotes != null) 'adminNotes': adminNotes,
+      });
+    });
   }
 
   Future<void> updateOrderStatus({
