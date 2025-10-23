@@ -14,7 +14,7 @@ class AppTheme {
     ),
     useMaterial3: true,
     scaffoldBackgroundColor: const Color(0xFFFFFBF5),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 1,
       color: Colors.white,
       shape: RoundedRectangleBorder(

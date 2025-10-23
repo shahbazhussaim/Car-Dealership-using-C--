@@ -2,54 +2,63 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:karigar_woodwork/config.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:karigar_woodwork/models/models.dart';
+import 'package:karigar_woodwork/models/models.dart' as model;
 
 class EmailService {
-  // Generic send with template support and one retry on network error
+  /// Generic send with template support and one retry on network error
   static Future<String?> sendWithTemplate({
     required String to,
     required String template,
     Map<String, dynamic>? vars,
     String? subject,
   }) async {
-    if (kEmailFunctionUrl.isEmpty) return 'EMAIL_FUNCTION_URL not configured';
-    Future<String?> _do() async {
-      final res = await http.post(
-        Uri.parse(kEmailFunctionUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'to': to,
-          'template': template,
-          'vars': vars ?? <String, dynamic>{},
-          if (subject != null) 'subject': subject,
-        }),
-      );
-      if (res.statusCode >= 200 && res.statusCode < 300) return null;
-      return 'HTTP ${res.statusCode}: ${res.body}';
+    if (kEmailFunctionUrl.isEmpty) {
+      return 'EMAIL_FUNCTION_URL not configured';
     }
-    try {
-      final first = await _do();
-      if (first == null) return null;
-      // Retry once on failure
-      return await _do();
-    } catch (e) {
-      return e.toString();
+
+    // Helper function for sending request
+    Future<String?> _send() async {
+      try {
+        final res = await http.post(
+          Uri.parse(kEmailFunctionUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'to': to,
+            'template': template,
+            'vars': vars ?? <String, dynamic>{},
+            if (subject != null) 'subject': subject,
+          }),
+        );
+
+        if (res.statusCode >= 200 && res.statusCode < 300) return null;
+        return 'HTTP ${res.statusCode}: ${res.body}';
+      } catch (e) {
+        return e.toString();
+      }
     }
+
+    // Try first time
+    final firstAttempt = await _send();
+    if (firstAttempt == null) return null;
+
+    // Retry once if failed
+    final secondAttempt = await _send();
+    return secondAttempt;
   }
 
+  /// Send order status change email
   static Future<String?> sendOrderStatusChange({
-    required Order order,
+    required model.Order order,
     required String oldStatus,
     required String newStatus,
     String? userEmail,
   }) async {
     final email = userEmail ?? await getUserEmail(order.userId);
     if (email == null || email.isEmpty) return 'User email not found';
+
     final template = _templateForOrderStatus(newStatus);
-    final items = order.items
-        .map((e) => '${e.name} x${e.qty}')
-        .take(5)
-        .join(', ');
+    final items = order.items.map((e) => '${e.name} x${e.qty}').take(5).join(', ');
+
     final vars = {
       'orderId': order.id,
       'oldStatus': oldStatus,
@@ -58,6 +67,7 @@ class EmailService {
       'total': order.total,
       'adminNotes': order.adminNotes ?? '',
     };
+
     return sendWithTemplate(
       to: email,
       template: template,
@@ -66,15 +76,17 @@ class EmailService {
     );
   }
 
+  /// Send subscription status change email
   static Future<String?> sendSubscriptionChange({
-    required Subscription subscription,
+    required model.Subscription subscription,
     required String oldStatus,
     required String newStatus,
     String? userEmail,
-    Plan? plan,
+    model.Plan? plan,
   }) async {
     final email = userEmail ?? await getUserEmail(subscription.userId);
     if (email == null || email.isEmpty) return 'User email not found';
+
     final template = _templateForSubscriptionStatus(newStatus);
     final vars = {
       'planId': subscription.planId,
@@ -83,6 +95,7 @@ class EmailService {
       'nextBillingDate': subscription.nextBillingDate.toDate().toIso8601String(),
       'benefits': plan?.benefits ?? subscription.benefits,
     };
+
     return sendWithTemplate(
       to: email,
       template: template,
@@ -91,6 +104,7 @@ class EmailService {
     );
   }
 
+  /// Send technician assignment email
   static Future<String?> sendTechnicianAssigned({
     required String technicianEmail,
     required String orderId,
@@ -103,11 +117,13 @@ class EmailService {
     );
   }
 
+  /// Helper to get user email from Firestore
   static Future<String?> getUserEmail(String uid) async {
     final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
     return (doc.data()?['email'] as String?) ?? '';
   }
 
+  /// Template for order status
   static String _templateForOrderStatus(String status) {
     switch (status) {
       case 'CONFIRMED':
@@ -131,6 +147,7 @@ class EmailService {
     }
   }
 
+  /// Template for subscription status
   static String _templateForSubscriptionStatus(String status) {
     switch (status) {
       case 'TRIAL':

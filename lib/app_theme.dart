@@ -14,19 +14,20 @@ ThemeData buildAppTheme() {
 
   return base.copyWith(
     scaffoldBackgroundColor: AppColors.secondary.withOpacity(0.15),
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.secondary,
       foregroundColor: AppColors.primary,
       centerTitle: true,
       elevation: 0,
     ),
-    cardTheme: const CardTheme(
+    cardTheme: const CardThemeData(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppDimens.cardRadius)),
       ),
       elevation: 2,
       margin: EdgeInsets.all(AppDimens.padding),
     ),
+
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -48,7 +49,7 @@ ThemeData buildAppTheme() {
       ),
     ),
     chipTheme: base.chipTheme.copyWith(
-      color: MaterialStateProperty.all(AppColors.secondary),
+      color: WidgetStateProperty.all(AppColors.secondary),
       labelStyle: TextStyle(color: Colors.brown.shade800),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
