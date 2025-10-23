@@ -13,7 +13,8 @@ class EmailService {
     String? subject,
   }) async {
     if (kEmailFunctionUrl.isEmpty) return 'EMAIL_FUNCTION_URL not configured';
-    Future<String?> _do() async {
+    Future<String?> do {
+      () async {
       final res = await http.post(
         Uri.parse(kEmailFunctionUrl),
         headers: {'Content-Type': 'application/json'},
@@ -27,12 +28,15 @@ class EmailService {
       if (res.statusCode >= 200 && res.statusCode < 300) return null;
       return 'HTTP ${res.statusCode}: ${res.body}';
     }
-    try {
-      final first = await _do();
-      if (first == null) return null;
+    
+    } try {
+      final first = await do {
+        ();
+      } if (first == null) return null;
       // Retry once on failure
-      return await _do();
-    } catch (e) {
+      return await do {
+        ();
+      } } catch (e) {
       return e.toString();
     }
   }

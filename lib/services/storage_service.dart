@@ -1,5 +1,4 @@
 // Avoid dart:io for web compatibility; use bytes upload everywhere
-import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 

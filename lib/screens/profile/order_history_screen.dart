@@ -76,7 +76,7 @@ class _StatusTimeline extends StatelessWidget {
           .watchOrders() // not ideal; fetch subcollection
           .asyncMap((_) async => await _fetchLogs(orderId)),
       builder: (context, snapshot) {
-        final logs = snapshot.data as List<Map<String, dynamic>>?;
+        final logs = snapshot.data;
         if (logs == null) return const SizedBox();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -14,7 +14,7 @@ ThemeData buildAppTheme() {
 
   return base.copyWith(
     scaffoldBackgroundColor: AppColors.secondary.withOpacity(0.15),
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.secondary,
       foregroundColor: AppColors.primary,
       centerTitle: true,
@@ -48,7 +48,7 @@ ThemeData buildAppTheme() {
       ),
     ),
     chipTheme: base.chipTheme.copyWith(
-      color: MaterialStateProperty.all(AppColors.secondary),
+      color: WidgetStateProperty.all(AppColors.secondary),
       labelStyle: TextStyle(color: Colors.brown.shade800),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),

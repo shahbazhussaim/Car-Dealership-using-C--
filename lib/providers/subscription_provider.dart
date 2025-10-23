@@ -29,7 +29,7 @@ class SubscriptionProvider extends ChangeNotifier {
 
   Future<void> subscribe({required String userId, required Plan plan}) async {
     final now = Timestamp.now();
-    final next = Timestamp.fromDate(now.toDate().add(Duration(days: 30)));
+    final next = Timestamp.fromDate(now.toDate().add(const Duration(days: 30)));
     await _db.collection('subscriptions').add({
       'userId': userId,
       'planId': plan.id,

@@ -195,7 +195,7 @@ class _OrdersByStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statuses = const ['NEW', 'CONFIRMED', 'IN_PROGRESS', 'AWAITING_SHIPMENT', 'DELIVERED', 'CANCELLED'];
+    const statuses = ['NEW', 'CONFIRMED', 'IN_PROGRESS', 'AWAITING_SHIPMENT', 'DELIVERED', 'CANCELLED'];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
