@@ -20,13 +20,14 @@ ThemeData buildAppTheme() {
       centerTitle: true,
       elevation: 0,
     ),
-    cardTheme: const CardTheme(
+    cardTheme: const CardThemeData(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppDimens.cardRadius)),
       ),
       elevation: 2,
       margin: EdgeInsets.all(AppDimens.padding),
     ),
+
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),

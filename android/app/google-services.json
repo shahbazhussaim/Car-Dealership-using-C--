@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "381747502075",
+    "project_id": "karigarwoodwork",
+    "storage_bucket": "karigarwoodwork.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:381747502075:android:c10f1c9b3c6475090c895e",
+        "android_client_info": {
+          "package_name": "com.example.karigar_woodwork"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCy89PzDVW3n83NuwvCrKjzNDsMj7dGsJ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
