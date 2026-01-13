@@ -60,11 +60,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
       return const SplashScreen();
     }
 
-    // If not authenticated, show login first.
-    if (auth.user == null) {
-      return const LoginScreen();
-    }
-
+    // Show main shell regardless of auth; Profile tab will prompt login.
     return const MainShell();
   }
 }
